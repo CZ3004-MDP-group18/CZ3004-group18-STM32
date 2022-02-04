@@ -1,0 +1,15 @@
+ICM20948.c:21:6:Gyro_Writebyte	16	static
+ICM20948.c:26:9:Gyro_Readbyte	16	static
+ICM20948.c:34:6:bank_select	16	static
+ICM20948.c:41:9:ICM_who_am_i	8	static
+ICM20948.c:48:6:init_ICM20948	8	static
+ICM20948.c:69:6:ICM_Readaccgyro	40	static
+ICM20948.c:97:6:ICM_Gyrocali	56	static
+ICM20948.c:124:6:ICM_Angcali	96	static
+ICM20948.c:168:6:ICM_ComplementaryFilter	40	static
+ICM20948.c:191:6:Mag_Writebyte	16	static
+ICM20948.c:195:9:Mag_Readbyte	16	static
+ICM20948.c:205:9:AK_Company_ID	0	static
+ICM20948.c:209:9:AK_Device_ID	0	static
+ICM20948.c:213:6:init_AK09916	8	static
+ICM20948.c:218:6:AK_ReadData	32	static
