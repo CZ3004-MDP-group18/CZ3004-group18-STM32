@@ -1,8 +1,8 @@
-main.c:653:6:Motor	48	static
-main.c:593:6:StartDefaultTask	136	static
-main.c:752:6:encoder	48	static
-main.c:805:6:show	32	static
+main.c:652:6:Motor	56	static
+main.c:593:6:StartDefaultTask	120	static
+main.c:751:6:encoder	48	static
+main.c:804:6:show	32	static
 main.c:213:6:SystemClock_Config	88	static,ignoring_inline_asm
 main.c:118:5:main	112	static,ignoring_inline_asm
 main.c:577:6:HAL_UART_RxCpltCallback	0	static
-main.c:824:6:Error_Handler	0	static,ignoring_inline_asm
+main.c:823:6:Error_Handler	0	static,ignoring_inline_asm

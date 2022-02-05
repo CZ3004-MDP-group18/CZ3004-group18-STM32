@@ -614,8 +614,6 @@ void StartDefaultTask(void *argument)
 
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
-  htim1.Instance->CCR4 = 228;	//right
-
   for(;;)
   {
 	HAL_UART_Transmit(&huart3, (uint8_t *) &ch, 1, 0xFFFF);
@@ -628,14 +626,15 @@ void StartDefaultTask(void *argument)
     ICM_ComplementaryFilter(&icm20948);
     AK_ReadData(&icm20948,magdata,magdata_int);
 
-    sprintf((char*) buf, "ptc:%.2f rol:%.2f yaw:%.2f\n\r",icm20948.pitch,icm20948.roll,(icm20948.yaw + counter*0.03));
+//    sprintf((char*) buf, "ptc:%.2f rol:%.2f yaw:%.2f\n\r",icm20948.pitch,icm20948.roll,(icm20948.yaw + counter*0.03));
+    sprintf((char*) buf, "ptc:%.2f rol:%.2f yaw:%.2f\n\r",icm20948.pitch,icm20948.roll,icm20948.yaw);
     counter++;
     HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
     // write, make sure that other tasks are not reading
     if (mutex == false) {
     	mutex = true;
-    	YAW = icm20948.yaw + counter*0.03;
+    	YAW = icm20948.yaw;
     	mutex = false;
     }
 
@@ -702,28 +701,28 @@ void Motor(void *argument)
 	htim1.Instance->CCR4 = 149;	//center
 	osDelay(5000);
 
-	htim1.Instance->CCR4 = 228;	//right
-	osDelay(5000);
-
-	pwmVal = 1200;
-	while (yaw == 0)
-		if (mutex == false)
-			yaw = YAW;
-	// clockwise
-	while(pwmVal < 4000){
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin,GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin,GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin,GPIO_PIN_RESET);
-//		pwmVal++;
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-		osDelay(10);
-
-		if (mutex == false)
-			if ((yaw+0.4) > YAW)
-				break;
-	}
+//	htim1.Instance->CCR4 = 228;	//right
+//	osDelay(5000);
+//
+//	pwmVal = 1200;
+//	while (yaw == 0)
+//		if (mutex == false)
+//			yaw = YAW;
+//	// clockwise
+//	while(pwmVal < 4000){
+//		HAL_GPIO_WritePin(GPIOA, AIN2_Pin,GPIO_PIN_SET);
+//		HAL_GPIO_WritePin(GPIOA, AIN1_Pin,GPIO_PIN_RESET);
+//		HAL_GPIO_WritePin(GPIOA, BIN2_Pin,GPIO_PIN_SET);
+//		HAL_GPIO_WritePin(GPIOA, BIN1_Pin,GPIO_PIN_RESET);
+////		pwmVal++;
+//		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
+//		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
+//		osDelay(10);
+//
+//		if (mutex == false)
+//			if ((yaw+0.4) > YAW)
+//				break;
+//	}
 //	// anti-clockwise
 //	while(pwmVal > 0){
 	// Run if break (change in yaw > 0.4)
