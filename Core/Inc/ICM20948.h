@@ -14,6 +14,8 @@
 #include "math.h"
 
 #define alpha 0.9998
+//#define alpha2 0.9999999
+#define alpha2 1.0
 #define dt 0.002
 
 typedef struct __ICM20948{

@@ -178,7 +178,7 @@ void ICM_ComplementaryFilter(ICM20948* icm20948){
 
 	icm20948->pitch=(alpha)*(icm20948->pitch-(icm20948->f_gyy)*dt)+(1-alpha)*(accdegx);
 	icm20948->roll=(alpha)*(icm20948->roll-(icm20948->f_gyx)*dt)-(1-alpha)*(accdegy);
-	icm20948->yaw=(alpha)*(icm20948->yaw-(icm20948->f_gyz)*dt)-(1-alpha)*(accdegz);
+	icm20948->yaw=(alpha2)*(icm20948->yaw-(icm20948->f_gyz)*dt)-(1-alpha2)*(accdegz);
 	/*printf("%d %d %d\r\n",icm20948->getmpuaccx,icm20948->getmpuaccy,icm20948->getmpuaccz);
 	printf("%.1f %.1f %.1f\r\n",icm20948->f_gyx,icm20948->f_gyy,icm20948->f_gyz);
 	printf("%.1f %.1f\n\n\r",icm20948->pitch,icm20948->roll);
