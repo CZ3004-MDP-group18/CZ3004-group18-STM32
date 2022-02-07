@@ -610,25 +610,25 @@ void StartDefaultTask(void *argument)
   ICM_Angcali(&icm20948);
 
   /* Infinite loop */
-  uint8_t ch = 'A';
+//  uint8_t ch = 'A';
 
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
+//  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
   for(;;)
   {
-	HAL_UART_Transmit(&huart3, (uint8_t *) &ch, 1, 0xFFFF);
-	if (ch < 'Z')
-		ch++;
-	else
-		ch = 'A';
-    osDelay(400);
+//	HAL_UART_Transmit(&huart3, (uint8_t *) &ch, 1, 0xFFFF);
+//	if (ch < 'Z')
+//		ch++;
+//	else
+//		ch = 'A';
+    osDelay(100);
 //
     ICM_ComplementaryFilter(&icm20948);
     AK_ReadData(&icm20948,magdata,magdata_int);
 
 //    sprintf((char*) buf, "ptc:%.2f rol:%.2f yaw:%.2f\n\r",icm20948.pitch,icm20948.roll,(icm20948.yaw + counter*0.03));
     sprintf((char*) buf, "ptc:%.2f rol:%.2f yaw:%.2f\n\r",icm20948.pitch,icm20948.roll,icm20948.yaw);
-    counter++;
+//    counter++;
     HAL_UART_Transmit(&huart3, buf, strlen((char*)buf), HAL_MAX_DELAY);
 
     // write, make sure that other tasks are not reading
@@ -662,28 +662,49 @@ void Motor(void *argument)
 //  osDelay(500);
   float yaw = 0;
 
+  // encoder init start
+ HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+
+ int cnt1, cnt2, diff;
+ uint32_t tick;
+
+ cnt1 = __HAL_TIM_GET_COUNTER(&htim2);
+ tick = HAL_GetTick();
+ uint8_t hello[20];
+ uint16_t dir;
+
+ // encoder init end
+
 
   /* Infinite loop */
   for(;;)
   {
 //	htim1.Instance->CCR4 = 100;	//extreme left
 //	osDelay(5000);
-////	htim1.Instance->CCR4 = 149;	//center
-////	osDelay(5000);
-//	htim1.Instance->CCR4 = 228;	//right
-//	osDelay(5000);
-////	htim1.Instance->CCR4 = 149;	//center
-////	osDelay(5000);
-	htim1.Instance->CCR4 = 100;	//extreme left
+	htim1.Instance->CCR4 = 148;	//center
 	osDelay(5000);
-//	htim1.Instance->CCR4 = 228;	//right
+//	htim1.Instance->CCR4 = 230;	//right
+//	osDelay(5000);
+////	htim1.Instance->CCR4 = 148;	//center
+////	osDelay(5000);
+//	htim1.Instance->CCR4 = 100;	//extreme left
+//	osDelay(5000);
+//	htim1.Instance->CCR4 = 230;	//right
 //	osDelay(5000);
 //
 	while (yaw == 0)
-		if (mutex == false)
+		if (mutex == false) {
 			yaw = YAW;
+			uint32_t startTime = HAL_GetTick();
+			uint32_t prevTime = startTime;
+			uint32_t endTime;
+		}
 	// clockwise
 	while(pwmVal < 4000){
+		// encoder val
+		uint32_t currTime = HAL_GetTick();
+		cnt2 = __HAL_TIM_GET_COUNTER(&htim2);
+
 		HAL_GPIO_WritePin(GPIOA, AIN2_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOA, AIN1_Pin,GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(GPIOA, BIN2_Pin,GPIO_PIN_SET);
@@ -693,15 +714,32 @@ void Motor(void *argument)
 		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
 		osDelay(10);
 
+//		// for 90deg left turn
+//		if (mutex == false)
+//			if ((yaw-1.68) >= YAW) // 1.68 is the gyr value for 90deg left turn
+//				break;
+
+		// for 90deg right turn
 		if (mutex == false)
-			if ((yaw-0.4) > YAW)
+			if ((yaw+1.69) <= YAW) // 1.69 is the gyr value for 90deg right turn
 				break;
+
+
+
+		// encoder value 322 for 10cm of travel
+//		int dist = (int16_t)cnt2;
+//		if (dist>=322)
+//			break;
+
 	}
 
-	htim1.Instance->CCR4 = 149;	//center
-	osDelay(5000);
+	htim1.Instance->CCR4 = 148;	//center
+//	osDelay(5000);
 
-//	htim1.Instance->CCR4 = 228;	//right
+	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
+	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
+
+//	htim1.Instance->CCR4 = 230;	//right
 //	osDelay(5000);
 //
 //	pwmVal = 1200;
@@ -715,8 +753,7 @@ void Motor(void *argument)
 //		HAL_GPIO_WritePin(GPIOA, BIN2_Pin,GPIO_PIN_SET);
 //		HAL_GPIO_WritePin(GPIOA, BIN1_Pin,GPIO_PIN_RESET);
 ////		pwmVal++;
-//		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-//		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
+//		break;
 //		osDelay(10);
 //
 //		if (mutex == false)
@@ -731,7 +768,7 @@ void Motor(void *argument)
 //		HAL_GPIO_WritePin(GPIOA, BIN1_Pin,GPIO_PIN_SET);
 //		HAL_GPIO_WritePin(GPIOA, BIN2_Pin,GPIO_PIN_RESET);
 ////		pwmVal--;
-		pwmVal = 1200;
+//		pwmVal = 1200;
 //		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
 //		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
 //		osDelay(10);
