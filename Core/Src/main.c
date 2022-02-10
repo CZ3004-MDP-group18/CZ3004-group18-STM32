@@ -573,7 +573,7 @@ void StartDefaultTask(void *argument) {
 	/* Infinite loop */
 	for (;;) {
 		HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
-		sprintf(receiveBuffer, "%d\0", aRxBuffer);
+		memcpy(receiveBuffer, aRxBuffer, sizeof(char));
 		switch(receiveBuffer[0]){
 			case 'W':
 				Straight_Move(true);
@@ -594,11 +594,13 @@ void StartDefaultTask(void *argument) {
 				Turning(false, false);
 				break;
 		}
+		memmove(aRxBuffer, aRxBuffer+1, sizeof(aRxBuffer)-1);
 		HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF); // acknowledge
 		if (ch < 'Z')
 			ch++;
 		else
 			ch = 'A';
+
 		osDelay(100);
 	}
 	/* USER CODE END Display */
