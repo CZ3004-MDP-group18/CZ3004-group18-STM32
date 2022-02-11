@@ -146,7 +146,7 @@ int main(void) {
 	/* add Mutexes, ... */
 	Mutex = xSemaphoreCreateMutex();
 	if (Mutex != NULL) {
-//		HAL_UART_Transmit(&huart3, (uint8_t *) 'R', 1, HAL_MAX_DELAY);
+//		HAL_UART_Transmit(&huart3,(uint8_t *) 'J', 1, 0xFFFF);
 	}
 	/* USER CODE END RTOS_MUTEX */
 
@@ -570,6 +570,10 @@ void StartDefaultTask(void *argument) {
 	/* USER CODE BEGIN 5 */
 	uint8_t receiveBuffer[4];
 	uint8_t ch;
+
+	ch = 'R';
+	HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
+
 	/* Infinite loop */
 	for (;;) {
 		HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
@@ -599,6 +603,10 @@ void StartDefaultTask(void *argument) {
 				ch = Turning(false, false);
 				HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
 				break;
+//			case 8:
+//				HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
+//				if (aRxBuffer[0] == 'W')
+//					Straight_Move(false, 8);
 			default:
 				break;
 		}
@@ -859,7 +867,7 @@ char Turning(bool forward, bool left) {
 
 		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
 		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-		osDelay(10);
+		osDelay(10); // Move on top
 
 		// for 90deg left turn
 
