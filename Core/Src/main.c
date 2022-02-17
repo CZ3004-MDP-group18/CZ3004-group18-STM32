@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -87,7 +88,7 @@ void StartDefaultTask(void *argument);
 void Encoder(void *argument);
 void Display(void *argument);
 void Gyroscope(void *argument);
-char Straight_Move(bool);
+char Straight_Move(bool, int);
 char Turning(bool, bool);
 
 /* USER CODE BEGIN PFP */
@@ -580,11 +581,11 @@ void StartDefaultTask(void *argument) {
 		memcpy(receiveBuffer, aRxBuffer, sizeof(char));
 		switch(receiveBuffer[0]){
 			case 'W':
-				ch = Straight_Move(true);
+				ch = Straight_Move(true, 1);
 				HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
 				break;
 			case 'S':
-				ch = Straight_Move(false);
+				ch = Straight_Move(false, 1);
 				HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
 				break;
 			case 'Q':
@@ -603,11 +604,18 @@ void StartDefaultTask(void *argument) {
 				ch = Turning(false, false);
 				HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
 				break;
-//			case 8:
-//				HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
-//				if (aRxBuffer[0] == 'W')
-//					Straight_Move(false, 8);
 			default:
+				if (isdigit(receiveBuffer[0])) {
+					int var = receiveBuffer[0]-'0';
+					memmove(aRxBuffer, aRxBuffer+1, sizeof(aRxBuffer)-1);
+					HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
+					if (aRxBuffer[0] == 'S')
+						Straight_Move(false, var);
+					else if (aRxBuffer[0] == 'W')
+						Straight_Move(true, var);
+					else
+						break;
+				}
 				break;
 		}
 		memmove(aRxBuffer, aRxBuffer+1, sizeof(aRxBuffer)-1);
@@ -732,7 +740,7 @@ void Gyroscope(void *argument) {
 	/* USER CODE END Gyroscope */
 }
 
-char Straight_Move(bool forward) {
+char Straight_Move(bool forward, int steps) {
 
 	uint16_t pwmVal = 1200;
 
@@ -768,12 +776,12 @@ char Straight_Move(bool forward) {
 		cnt = __HAL_TIM_GET_COUNTER(&htim2);
 
 		if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim2)) {
-			if (cnt <= -322) {
+			if (cnt <= -322*steps) {
 				break;
 			}
 		}
 		else {
-			if (cnt >= 322) {
+			if (cnt >= 322*steps) {
 				break;
 			}
 		}
