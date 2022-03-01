@@ -1,4 +1,4 @@
-Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
+Core/Src/oled.o: ../Core/Src/oled.c ../Core/Inc/oled.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
@@ -30,34 +30,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_i2c.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_bus.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_cortex.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_rcc.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_system.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_utils.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_pwr.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_gpio.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_dma.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_exti.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
- ../Core/Inc/FreeRTOSConfig.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
- ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
- ../Core/Inc/oled.h ../Core/Inc/ICM20948.h ../Core/Inc/I2C.h \
- ../Core/Inc/main.h
+ ../Core/Inc/oledfont.h
 
-../Core/Inc/main.h:
+../Core/Inc/oled.h:
 
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 
@@ -121,58 +96,4 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_i2c.h:
-
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_bus.h:
-
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_cortex.h:
-
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_rcc.h:
-
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_system.h:
-
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_utils.h:
-
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_pwr.h:
-
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_gpio.h:
-
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_dma.h:
-
-../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_exti.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
-
-../Core/Inc/FreeRTOSConfig.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/list.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:
-
-../Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
-
-../Core/Inc/oled.h:
-
-../Core/Inc/ICM20948.h:
-
-../Core/Inc/I2C.h:
-
-../Core/Inc/main.h:
+../Core/Inc/oledfont.h:
