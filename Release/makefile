@@ -16,7 +16,6 @@ RM := rm -rf
 -include Drivers/STM32F4xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
--include Core/PeripheralDriver/Src/subdir.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -68,8 +67,8 @@ all: main-build
 main-build: MDP_HelloWorld.elf secondary-outputs
 
 # Tool invocations
-MDP_HelloWorld.elf: $(OBJS) $(USER_OBJS) /Users/yulinzou/STM32CubeIDE/workspace_1.8.0/MDP_HelloWorld/STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "MDP_HelloWorld.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/Users/yulinzou/STM32CubeIDE/workspace_1.8.0/MDP_HelloWorld/STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MDP_HelloWorld.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+MDP_HelloWorld.elf: $(OBJS) $(USER_OBJS) C:\Users\anasm\Documents\NTU\Sem2\MDP\Code\f407\MDP_HelloWorld\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "MDP_HelloWorld.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\anasm\Documents\NTU\Sem2\MDP\Code\f407\MDP_HelloWorld\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MDP_HelloWorld.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
