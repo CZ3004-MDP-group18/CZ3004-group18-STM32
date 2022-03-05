@@ -23,12 +23,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "semphr.h"
-
+#include "icm20948.h"
 #include "oled.h"
 #include "stdlib.h"
-#include "ICM20948.h"
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -51,6 +48,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+
+I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
@@ -85,7 +84,7 @@ osThreadId_t gyroscopeHandle;
 const osThreadAttr_t gyroscope_attributes = {
   .name = "gyroscope",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* USER CODE BEGIN PV */
 
@@ -98,9 +97,9 @@ static void MX_TIM8_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_USART3_UART_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_I2C1_Init(void);
 void StartDefaultTask(void *argument);
 void Encoder(void *argument);
 void Display(void *argument);
@@ -111,20 +110,13 @@ void StartDefaultTask(void *argument);
 void Encoder(void *argument);
 void Display(void *argument);
 void Gyroscope(void *argument);
-char Obstacle_Straight_Move();
-char Straight_Move(bool, int);
-char Turning(bool, bool, int);
-char Tight_Turn(bool, bool);
-char Spot_Rotate(bool);
-char U_Turn();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-static SemaphoreHandle_t Mutex;
 uint8_t aRxBuffer[20];
-static float YAW = 0.0;
-static int IR_READ = -1;
+axises my_gyro;
+axises my_accel;
 
 /* USER CODE END 0 */
 
@@ -160,12 +152,12 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM1_Init();
   MX_USART3_UART_Init();
-  MX_I2C1_Init();
   MX_ADC1_Init();
   MX_TIM3_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-	OLED_Init();
-	HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 10);
+  OLED_Init();
+//  ICM20948_Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -173,10 +165,6 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_MUTEX */
 	/* add Mutexes, ... */
-	Mutex = xSemaphoreCreateMutex();
-	if (Mutex != NULL) {
-//		HAL_UART_Transmit(&huart3,(uint8_t *) 'J', 1, 0xFFFF);
-	}
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -327,42 +315,22 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 0 */
 
-  LL_I2C_InitTypeDef I2C_InitStruct = {0};
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOB);
-  /**I2C1 GPIO Configuration
-  PB8   ------> I2C1_SCL
-  PB9   ------> I2C1_SDA
-  */
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_8|LL_GPIO_PIN_9;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_4;
-  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_I2C1);
-
   /* USER CODE BEGIN I2C1_Init 1 */
 
   /* USER CODE END I2C1_Init 1 */
-  /** I2C Initialization
-  */
-  LL_I2C_DisableOwnAddress2(I2C1);
-  LL_I2C_DisableGeneralCall(I2C1);
-  LL_I2C_EnableClockStretching(I2C1);
-  I2C_InitStruct.PeripheralMode = LL_I2C_MODE_I2C;
-  I2C_InitStruct.ClockSpeed = 100000;
-  I2C_InitStruct.DutyCycle = LL_I2C_DUTYCYCLE_2;
-  I2C_InitStruct.OwnAddress1 = 0;
-  I2C_InitStruct.TypeAcknowledge = LL_I2C_ACK;
-  I2C_InitStruct.OwnAddrSize = LL_I2C_OWNADDRESS1_7BIT;
-  LL_I2C_Init(I2C1, &I2C_InitStruct);
-  LL_I2C_SetOwnAddress2(I2C1, 0);
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
@@ -668,16 +636,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, OLED_SCL_Pin|OLED_SDA_Pin|OLED_RST_Pin|OLED_DC_Pin
-                          |ICM_INT_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, OLED_SCL_Pin|OLED_SDA_Pin|OLED_RST_Pin|OLED_DC_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, AIN2_Pin|AIN1_Pin|BIN1_Pin|BIN2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : OLED_SCL_Pin OLED_SDA_Pin OLED_RST_Pin OLED_DC_Pin
-                           ICM_INT_Pin */
-  GPIO_InitStruct.Pin = OLED_SCL_Pin|OLED_SDA_Pin|OLED_RST_Pin|OLED_DC_Pin
-                          |ICM_INT_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(ICM_INT_GPIO_Port, ICM_INT_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pins : OLED_SCL_Pin OLED_SDA_Pin OLED_RST_Pin OLED_DC_Pin */
+  GPIO_InitStruct.Pin = OLED_SCL_Pin|OLED_SDA_Pin|OLED_RST_Pin|OLED_DC_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -690,74 +658,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : ICM_INT_Pin */
+  GPIO_InitStruct.Pin = ICM_INT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(ICM_INT_GPIO_Port, &GPIO_InitStruct);
+
 }
 
 /* USER CODE BEGIN 4 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	/* Prevent unused argument(s) compilation warning*/
 	UNUSED(huart);
-
-//	HAL_UART_Transmit(&huart3, (uint8_t*) aRxBuffer, 10, 0xFFFF);
+	HAL_UART_Transmit(&huart3, (uint8_t*) aRxBuffer, 1, 0xFFFF);
 }
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
-
-//IR sensor function
-int IR(ADC_HandleTypeDef hadc1){
-	uint16_t raw;
-//	uint8_t msg[10];
-	int voltage;
-	int distance;
-	double temp;
-
-	///////IR Sensor Code////////////
-	//Set GPIO pin to high
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
-
-	//Get ADC value
-	HAL_ADC_Start(&hadc1);
-	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	raw = HAL_ADC_GetValue(&hadc1);
-
-	//Set GPIO pin to low
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
-
-//	//Convert to string and display on OLED
-	voltage = (int)raw;
-
-	if (voltage <= 2960 && voltage > 2500)
-		distance = 1;
-	else if (voltage <= 2500 && voltage > 1845)
-		distance = 2;
-	else if (voltage <= 1845 && voltage > 1460)
-		distance = 3;
-	else if (voltage <= 1460 && voltage > 1275)
-		distance = 4;
-	else if (voltage <= 1275 && voltage > 1135)
-		distance = 5;
-	else if (voltage <= 1135 && voltage > 1020)
-		distance = 6;
-	else if (voltage <= 1020 && voltage > 925)
-		distance = 7;
-	else if (voltage <= 925 && voltage > 815)
-		distance = 8;
-	else if (voltage <= 815 && voltage > 710)
-		distance = 9;
-	// Nothing within 50cm
-	else if (voltage <= 710)
-		distance = 0;
-	// Too close
-	else
-		distance = -1;
-
-	IR_READ = distance;
-//	IR_READ = voltage;
-
-//	return voltage;
-	return distance;
-}
-
 /**
  * @brief  Function implementing the defaultTask thread.
  * @param  argument: Not used
@@ -766,167 +684,20 @@ int IR(ADC_HandleTypeDef hadc1){
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
-	/* USER CODE BEGIN 5 */
-		uint8_t receiveBuffer[4];
-		uint8_t ch;
-		uint8_t char2;
-		bool have_var = false;
-		bool two_digits = false;
-		int count = 1;
-		int var;
-		int var2;
-
-		/* Infinite loop */
-		for (;;) {
-
-			IR(hadc1);
-
-			HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
-			memcpy(receiveBuffer, aRxBuffer, sizeof(char));
-			switch(receiveBuffer[0]){
-				case 'W':
-					if (have_var){
-						if (two_digits) {
-							var = (var * 10) + var2;
-						}
-						ch = Straight_Move(true, var);
-						have_var = false;
-					} else {
-						ch = Straight_Move(true, 1);
-					}
-					// reset var
-					two_digits = false;
-					count = 1;
-					ch = 'R';
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					break;
-				case 'S':
-					if (have_var){
-						if (two_digits) {
-							var = (var * 10) + var2;
-						}
-						ch = Straight_Move(false, var);
-						have_var = false;
-					} else {
-						ch = Straight_Move(false, 1);
-					}
-					// reset var
-					two_digits = false;
-					count = 1;
-					ch = 'R';
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					break;
-				case 'Q':
-	//				ch = Turning(true, true, 90);
-	//				HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-	//				break;
-
-					if (have_var){
-						if (two_digits) {
-							var = (var * 10) + var2;
-						}
-//						ch = Turning(true, true, var);
-						ch = Tight_Turn(true, true);
-						have_var = false;
-					} else {
-//						ch = Turning(true, true, 9);
-						ch = Tight_Turn(true, true);
-					}
-					// reset var
-					two_digits = false;
-					count = 1;
-					ch = 'R';
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					break;
-				case 'E':
-	//				ch = Turning(true, false, 9);
-	//				HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-	//				break;
-
-					if (have_var){
-						if (two_digits) {
-							var = (var * 10) + var2;
-						}
-//						ch = Turning(true, false, var);
-						ch = Tight_Turn(true, false);
-						have_var = false;
-					} else {
-//						ch = Turning(true, false, 9);
-						ch = Tight_Turn(true, false);
-					}
-					// reset var
-					two_digits = false;
-					count = 1;
-					ch = 'R';
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					break;
-				case 'A':
-//					ch = Turning(false, true, 9);
-					ch = Tight_Turn(false, true);
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					break;
-				case 'D':
-//					ch = Turning(false, false, 9);
-					ch = Tight_Turn(false, false);
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					break;
-	//			case 8:
-	//				HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
-	//				if (aRxBuffer[0] == 'W')
-	//					Straight_Move(false, 8);
-				case 'Z':
-					ch = Obstacle_Straight_Move();
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					break;
-				case 'O':
-					ch = Spot_Rotate(true);
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					break;
-				case 'U':
-					ch = U_Turn();
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					break;
-				case '0':
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				case '5':
-				case '6':
-				case '7':
-				case '8':
-				case '9':
-					ch = '1';
-					HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-					have_var = true;
-					// if second digit
-					if (count == 2) {
-						ch = '2';
-						HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-						var2 = receiveBuffer[0]-'0';
-						two_digits = true;
-						count = 1;
-					}
-					// if first digit
-					else {
-						var = receiveBuffer[0]-'0';
-						count++;
-					}
-
-					break;
-				default:
-					break;
-			}
-			memmove(aRxBuffer, aRxBuffer+1, sizeof(aRxBuffer)-1);
-	//		HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF); // acknowledge
-	//		if (ch < 'Z')
-	//			ch++;
-	//		else
-	//			ch = 'A';
-
-			osDelay(100);
-		}
-		/* USER CODE END Display */
+  /* USER CODE BEGIN 5 */
+//	uint8_t ch = 'A';
+  /* Infinite loop */
+  for(;;)
+  {
+	  HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
+//	  HAL_UART_Transmit(&huart3, (uint8_t *)&ch, sizeof(char), 0xFFFF);
+//	  if (ch < 'Z')
+//		  ch++;
+//	  else
+//		  ch = 'A';
+	  osDelay(1);
+  }
+  /* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_Encoder */
@@ -941,12 +712,12 @@ void Encoder(void *argument)
   /* USER CODE BEGIN Encoder */
 	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
 
-	int cnt, cnt1, cnt2, diff;
+	int cnt1, cnt2, diff;
 	uint32_t tick;
 
 	cnt1 = __HAL_TIM_GET_COUNTER(&htim3);
 	tick = HAL_GetTick();
-	uint8_t hello[20];
+	uint8_t display_buf[20];
 	uint16_t dir;
 	/* Infinite loop */
 
@@ -965,15 +736,11 @@ void Encoder(void *argument)
 					diff = (65535 - cnt1) + cnt2;
 			}
 
-			sprintf(hello, "Speed:%5d\0", diff);
-			OLED_ShowString(10, 20, hello);
-//			HAL_UART_Transmit(&huart3, hello, strlen((char*)hello), HAL_MAX_DELAY);
+			sprintf(display_buf, "Speed:%5d", diff);
+			OLED_ShowString(10, 20, display_buf);
 			dir = __HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3);
-			sprintf(hello, "Dir:%5d\0", dir);
-			OLED_ShowString(10, 30, hello);
-			cnt = __HAL_TIM_GET_COUNTER(&htim3);
-			sprintf(hello, "%5d\n", cnt);
-			OLED_ShowString(10, 40, hello);
+			sprintf(display_buf, "Dir:%5d", dir);
+			OLED_ShowString(10, 30, display_buf);
 			cnt1 = __HAL_TIM_GET_COUNTER(&htim3);
 			tick = HAL_GetTick();
 		}
@@ -995,13 +762,8 @@ void Display(void *argument)
 	uint8_t display_buf[20] = "Hello World!\0";
 	/* Infinite loop */
 	for (;;) {
-		sprintf(display_buf, "%s\0", aRxBuffer);
+		sprintf(display_buf, "%s", aRxBuffer);
 		OLED_ShowString(10, 10, display_buf);
-
-		// IR display
-//		sprintf(display_buf, "%hu\r\n", IR_READ);
-//		OLED_ShowString(10, 40, display_buf);
-
 		OLED_Refresh_Gram();
 		osDelay(1000);
 	}
@@ -1018,834 +780,37 @@ void Display(void *argument)
 void Gyroscope(void *argument)
 {
   /* USER CODE BEGIN Gyroscope */
-	int16_t magdata_int[3];
-	float magdata[3];
-//	uint8_t buf[200];
-	uint8_t ch;
-
-	LL_mDelay(1000);
-	printf("start\r\n");
-	init_ICM20948(&icm20948, I2C1);
-	printf("%.2X\r\n", ICM_who_am_i(&icm20948));
-	init_AK09916(&icm20948);
-	printf("%.2X\r\n", AK_Company_ID(&icm20948));
-	printf("%.2X\r\n", AK_Device_ID(&icm20948));
-	ICM_Gyrocali(&icm20948);
-	ICM_Angcali(&icm20948);
-
-	ch = 'R';
-	HAL_UART_Transmit(&huart3,(uint8_t *)&ch, 1, 0xFFFF);
-
-	/* Infinite loop */
+	uint8_t reg_val, ub;
+	uint8_t ack[10];
+	ub = ub_0;
+	reg_val = 0x00;
+	HAL_I2C_Mem_Write(ICM20948_I2C, ICM20948_ADDRESS<<1, REG_BANK_SEL, 1, &ub, 1, 1000);
 	for (;;) {
-		osDelay(100);
-		ICM_ComplementaryFilter(&icm20948);
-		AK_ReadData(&icm20948, magdata, magdata_int);
-
-//		sprintf((char*) buf, "ptc:%.2f rol:%.2f yaw:%.2f\n\r", icm20948.pitch,
-//				icm20948.roll, icm20948.yaw);
-//		HAL_UART_Transmit(&huart3, buf, strlen((char*) buf), HAL_MAX_DELAY);
-
-		// write, make sure that other tasks are not reading
-		xSemaphoreTake(Mutex, portMAX_DELAY);
-		YAW = icm20948.yaw;
-		xSemaphoreGive(Mutex);
+		HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_ADDRESS<<1, B0_WHO_AM_I, 1, &reg_val, 1, 1000);
+		if(reg_val == ICM20948_ID)
+		{
+			sprintf(ack, "%x", reg_val);
+			HAL_UART_Transmit(&huart3, (uint8_t*)ack, strlen(ack), 0xFFFF);
+		}
+		osDelay(1000);
+//		ICM20948_Gyro_Read_dps(&my_gyro);
+//		ICM20948_Accel_Read_g(&my_accel);
 	}
   /* USER CODE END Gyroscope */
 }
 
-//IR(hadc1);
-char Obstacle_Straight_Move() {
-
-	uint16_t pwmVal = 1200;
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-
-//	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-
-//	int16_t cnt;
-
-	int dist = IR(hadc1);
-
-	for (;;) {
-		htim1.Instance->CCR4 = 148;	//center
-
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_RESET);
-
-		osDelay(10);
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-
-		if (IR(hadc1) < 1300)
-			break;
-	}
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-
-	return 'R';
-}
-
-char Straight_Move(bool forward, int steps) {
-
-	uint16_t pwmVal = 1200;
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-
-	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
-
-	int16_t cnt1, cnt2;
-	int target;
-	cnt1 = __HAL_TIM_GET_COUNTER(&htim3);
-	for (;;) {
-		htim1.Instance->CCR4 = 143;	//center
-
-		if (forward == true) {
-			HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_RESET);
-		} else {
-			HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_RESET);
-		}
-
-		osDelay(10);
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-
-		target = 663*steps;
-		cnt2 = __HAL_TIM_GET_COUNTER(&htim3);
-
-		if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3)) {
-			if ((cnt1-cnt2) >= target) {
-				break;
-			}
-			else {
-				// if less than half the distance
-//				if (cnt > target/2 && pwmVal < 2000)
-//					pwmVal += 40;
-//				else if (cnt < target/2 && pwmVal > 1200)
-//					pwmVal -= 40;
-
-				__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-				__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-			}
-		}
-		else {
-			if ((cnt2-cnt1) >= target) {
-				break;
-			}
-			else {
-				// if less than half the distance
-//				if (cnt < target/2 && pwmVal < 2000)
-//					pwmVal += 40;
-//				else if (cnt > target/2 && pwmVal > 1200)
-//					pwmVal -= 40;
-
-				__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-				__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-			}
-		}
-	}
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
-	TIM3->CNT = 0;
-	return 'R';
-}
-
-
-// For turning with gyroscope
-//char Turning(bool forward, bool left, int angle) {
-//	uint16_t pwmVal = 1200;
-//	uint8_t buf[20];
-//	int16_t cnt;
-//	float yaw = 0;
-//	float diff = 0;
-//	bool stopTurning = false;
-//
-//	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-//
-//	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-//
-//	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-//
-//	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-//
-//	for (;;) {
-//		xSemaphoreTake(Mutex, portMAX_DELAY);
-//		if (yaw == 0)
-//			yaw = YAW;
-//		xSemaphoreGive(Mutex);
-//
-//		if (left == true) {
-//			htim1.Instance->CCR4 = 100; // Turning Left
-//		} else {
-//			htim1.Instance->CCR4 = 235; // Turning Right
-//		}
-//
-//		if (forward == true) {
-//			HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_SET);
-//			HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_SET);
-//			HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_RESET);
-//		} else {
-//			HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_SET);
-//			HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_SET);
-//			HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_RESET);
-//		}
-//
-////		// for 90deg left turn
-////		if (left == true) {
-////			xSemaphoreTake(Mutex, portMAX_DELAY);
-////			diff = yaw - YAW;
-////			xSemaphoreGive(Mutex);
-////		} else {
-////			xSemaphoreTake(Mutex, portMAX_DELAY);
-////			diff = YAW - yaw;
-////			xSemaphoreGive(Mutex);
-////		}
-////
-////		osDelay(10);
-////		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-////		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-////
-////		// Separate branching so that we don't carry on moving while
-////		// semaphore is not taken
-////		while (stopTurning == false) {
-////			if (left == true) {
-////				if (diff >= 1.68) {
-////					// 1.68 is the gyroscope value for 90deg left turn
-////					stopTurning = true;
-////				}
-////			}
-////			else {
-////				// for 90deg right turn
-////				if (diff >= 1.69) {
-////					// 1.69 is the gyroscope value for 90deg right turn
-////					stopTurning = true;
-////				}
-////			}
-////		}
-////		// Reach break when while loop condition is not met
-////		break;
-////	}
-////	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-////	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-////	htim1.Instance->CCR4 = 148;
-////	return 'R';
-//
-//		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-//		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-//		osDelay(10); // Move on top
-//
-//		// for 90deg left turn
-//
-//		if (((left == true) && (forward == true)) || ((left == false) && (forward == false))) {
-//			xSemaphoreTake(Mutex, portMAX_DELAY);
-//			diff = yaw - YAW;
-//			xSemaphoreGive(Mutex);
-//			if (diff >= (1.73/90)*(angle*10)) {
-//				// 1.68 is the gyroscope value for 90deg left turn
-//				htim1.Instance->CCR4 = 148;
-////				cnt = __HAL_TIM_GET_COUNTER(&htim2);
-////				sprintf(buf, "%d\0", cnt);
-////				HAL_UART_Transmit(&huart3, buf, sizeof(buf), 0xFFFF); // acknowledge
-//
-//				break;
-//			}
-//		} else {
-//			xSemaphoreTake(Mutex, portMAX_DELAY);
-//			diff = YAW - yaw;
-//			xSemaphoreGive(Mutex);
-//			// for 90deg right turn
-//			if (diff >= (1.73/90)*(angle*10)) {
-//				// 1.69 is the gyroscope value for 90deg right turn
-//				htim1.Instance->CCR4 = 148;
-////				cnt = __HAL_TIM_GET_COUNTER(&htim2);
-////				sprintf(buf, "%d\0", cnt);
-////				HAL_UART_Transmit(&huart3, buf, sizeof(buf), 0xFFFF); // acknowledge
-//
-//				break;
-//			}
-//		}
-//
-//	}
-//	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-//	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-//	osDelay(10);
-//
-//	// Reset Timer Val
-//	__HAL_TIM_CLEAR_IT(&htim2, TIM_IT_UPDATE);
-//	TIM2->CNT = 0;
-//	return 'R';
-//}
-
-
-// For turning with encoder
-char Turning(bool forward, bool left, int angle) {
-	uint16_t pwmVal = 1200;
-	uint8_t buf[20];
-	uint16_t cnt;
-	float yaw = 0;
-	int target;
-
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
-	TIM3->CNT = 0;
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-
-	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
-
-
-// For TR
-//	if (left == true) {
-//		htim1.Instance->CCR4 = 100; // Turning Left
-//		if (forward == true)
-//			target = 2490;
-//		else
-//			target = 2510;
-//	} else {
-//		htim1.Instance->CCR4 = 230; // Turning Right
-//		if (forward == true)
-//			target = 4250;
-//		else
-//			target = 4230;
-//	}
-
-// For lounge
-	if (left == true) {
-		htim1.Instance->CCR4 = 100; // Turning Left
-		if (forward == true)
-			target = 2940;
-		else
-			target = 2960;
-	} else {
-		htim1.Instance->CCR4 = 240; // Turning Right
-		if (forward == true)
-			target = 4210;
-		else
-			target = 4280;
-	}
-
-
-
-	xSemaphoreTake(Mutex, portMAX_DELAY);
-	if (yaw == 0)
-		yaw = YAW;
-	xSemaphoreGive(Mutex);
-
-	if (forward == true) {
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_RESET);
-	} else {
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_RESET);
-	}
-
-
-	osDelay(500);
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-	osDelay(10); // Move on top
-
-	for (;;) {
-
-
-		// for 90deg left turn
-		cnt = __HAL_TIM_GET_COUNTER(&htim3);
-
-		if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3)) {
-			if (65535-cnt >= target && cnt!=0) {
-				break;
-			}
-//			else {
-//				// if less than half the distance
-//				if (cnt > target/2 && pwmVal < 2000)
-//					pwmVal += 40;
-//				else if (cnt < target/2 && pwmVal > 1200)
-//					pwmVal -= 40;
-//
-//				__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-//				__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-//			}
-		}
-		else {
-			if (cnt >= target) {
-				break;
-			}
-//			else {
-//				// if less than half the distance
-//				if (cnt < target/2 && pwmVal < 2000)
-//					pwmVal += 40;
-//				else if (cnt > target/2 && pwmVal > 1200)
-//					pwmVal -= 40;
-//
-//				__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-//				__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-//			}
-		}
-
-	}
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-	osDelay(10);
-	htim1.Instance->CCR4 = 143; // Forward
-
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
-	TIM3->CNT = 0;
-	return 'R';
-}
-
-// For turning with encoder
-char Tight_Turn(bool forward, bool left) {
-	uint16_t pwmVal = 1200;
-	uint8_t buf[20];
-	uint16_t cnt;
-	float yaw = 0;
-	int target;
-	int targetFront1;
-	int targetBack;
-	int targetFront2;
-
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
-	TIM3->CNT = 0;
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-
-	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
-
-
-// For TR
-//	if (left == true) {
-//		htim1.Instance->CCR4 = 100; // Turning Left
-//		if (forward == true)
-//			target = 2490;
-//		else
-//			target = 2510;
-//	} else {
-//		htim1.Instance->CCR4 = 230; // Turning Right
-//		if (forward == true)
-//			target = 4250;
-//		else
-//			target = 4230;
-//	}
-
-// For lounge
-	if (forward == true){
-		if (left == true) {
-			htim1.Instance->CCR4 = 93; // Turning Left 2940
-			targetFront1 = 980;
-			targetBack = 1380;
-			targetFront2 = 800;
-		} else {
-			htim1.Instance->CCR4 = 240; // Turning Right 4210
-			targetFront1 = 1554;
-			targetBack = 1184;
-			targetFront2 = 810;
-		}
-	} else {
-		if (left == true) {
-			htim1.Instance->CCR4 = 93; // A Turning Left 2940
-			targetFront1 = 400;
-			targetBack = 2000;
-			targetFront2 = 710;
-		} else {
-			htim1.Instance->CCR4 = 240; // D Turning Right 4210
-			targetFront1 = 700;
-			targetBack = 1550;
-			targetFront2 = 610;
-		}
-	}
-	if (forward == true) {
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_RESET);
-	} else {
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_RESET);
-	}
-
-
-	osDelay(500);
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-	osDelay(10); // Move on top
-
-	for (;;) {
-		// for 90deg left turn
-		cnt = __HAL_TIM_GET_COUNTER(&htim3);
-
-		if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3)) {
-			if (65535-cnt >= targetFront1 && cnt!=0) {
-				break;
-			}
-		}
-		else {
-			if (cnt >= targetFront1) {
-				break;
-			}
-		}
-
-	}
-
-	// Stop
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-
-
-//	__HAL_TIM_SET_COUNTER(&htim3,0);
-
-	osDelay(100);
-
-	// Back
-
-	if (left == true) {
-		htim1.Instance->CCR4 = 240; // Turning Left 2940
-	} else {
-		htim1.Instance->CCR4 = 93; // Turning Right 4210
-	}
-
-	if (forward == true) {
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_RESET);
-	} else {
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_RESET);
-	}
-	osDelay(500);
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-	osDelay(10); // Move on top
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
-	TIM3->CNT = 0;
-
-	for (;;) {
-		// for 90deg left turn
-		cnt = __HAL_TIM_GET_COUNTER(&htim3);
-
-		if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3)) {
-			if (65535-cnt >= targetBack && cnt!=0) {
-				break;
-			}
-		}
-		else {
-			if (cnt >= targetBack) {
-				break;
-			}
-		}
-
-	}
-
-	// Front2
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-
-
-//	__HAL_TIM_SET_COUNTER(&htim3,0);
-
-	osDelay(100);
-
-	if (left == true) {
-		htim1.Instance->CCR4 = 93; // Turning Left 2940
-	} else {
-		htim1.Instance->CCR4 = 240; // Turning Right 4210
-	}
-
-	if (forward == true) {
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_RESET);
-	} else {
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_RESET);
-	}
-	osDelay(500);
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-	osDelay(10); // Move on top
-
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
-	TIM3->CNT = 0;
-
-	for (;;) {
-		// for 90deg left turn
-		cnt = __HAL_TIM_GET_COUNTER(&htim3);
-
-		if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3)) {
-			if (65535-cnt >= targetFront2 && cnt!=0) {
-				break;
-			}
-		}
-		else {
-			if (cnt >= targetFront2) {
-				break;
-			}
-		}
-
-	}
-
-
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-	osDelay(10);
-	htim1.Instance->CCR4 = 143; // Forward
-
-	// cnt declaration
-
-	int16_t cnt1, cnt2;
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
-	TIM3->CNT = 0;
-
-	cnt1 = __HAL_TIM_GET_COUNTER(&htim3);
-
-	// Backwards correction
-	for (;;) {
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_RESET);
-		osDelay(10);
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-		if (forward == true){
-			if (left == true)
-				target = 1047;
-			else
-				target = 410;
-		} else {
-			if (left == true)
-				target = 400;
-			else
-				target = 1000;
-		}
-		cnt2 = __HAL_TIM_GET_COUNTER(&htim3);
-
-		if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3)) {
-			if ((cnt1-cnt2) >= target) {
-				break;
-			}
-		}
-		else {
-			if ((cnt2-cnt1) >= target) {
-				break;
-			}
-		}
-	}
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the compaEErison value for the duty cycle
-
-
-	// Backwards correction
-//	else if (forward == true && left == false) {
-//		for (;;) {
-//		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_SET);
-//		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_RESET);
-//		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_SET);
-//		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_RESET);
-//		osDelay(10);
-//		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-//		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-//
-//		target = 317;
-//				cnt2 = __HAL_TIM_GET_COUNTER(&htim3);
-//
-//				if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3)) {
-//					if ((cnt1-cnt2) >= target) {
-//						break;
-//					}
-//					else {
-//						__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-//						__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-//					}
-//				}
-//				else {
-//					if ((cnt2-cnt1) >= target) {
-//						break;
-//					}
-//					else {
-//						__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-//						__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-//					}
-//				}
-//			}
-//			__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-//			__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-//	}
-
-
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
-	TIM3->CNT = 0;
-	return 'R';
-}
-
-char U_Turn() {
-	uint16_t pwmVal = 1200;
-	uint8_t buf[20];
-	int16_t cnt;
-	float yaw = 0;
-	float diff = 0;
-	bool stopTurning = false;
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-
-	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-
-	for (;;) {
-		xSemaphoreTake(Mutex, portMAX_DELAY);
-		if (yaw == 0)
-			yaw = YAW;
-		xSemaphoreGive(Mutex);
-
-		htim1.Instance->CCR4 = 100; // Turning Left
-
-
-		HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_RESET);
-
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-		osDelay(10); // Move on top
-
-		// for 180deg left turn
-		xSemaphoreTake(Mutex, portMAX_DELAY);
-		diff = yaw - YAW;
-		xSemaphoreGive(Mutex);
-		if (diff >= 3.40) {
-			// 1.68 is the gyroscope value for 90deg left turn
-			htim1.Instance->CCR4 = 148;
-
-			break;
-		}
-
-	}
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-	osDelay(10);
-
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim2, TIM_IT_UPDATE);
-	TIM2->CNT = 0;
-	return 'R';
-}
-
-char Spot_Rotate(bool left) {
-
-	uint16_t pwmVal = 1200;
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-
-	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-
-	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-
-	int16_t cnt;
-
-	for (;;) {
-		htim1.Instance->CCR4 = 148;	//center
-
-		if (left == true) {
-			HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_RESET);
-		} else {
-			HAL_GPIO_WritePin(GPIOA, AIN1_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOA, AIN2_Pin, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA, BIN2_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(GPIOA, BIN1_Pin, GPIO_PIN_RESET);
-		}
-
-		osDelay(10);
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,pwmVal); // Modify the comparison value for the duty cycle
-		__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,pwmVal); // Modify the comparison value for the duty cycle
-
-		cnt = __HAL_TIM_GET_COUNTER(&htim2);
-
-		if (__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim2)) {
-			if (cnt <= -322) {
-				break;
-			}
-		}
-		else {
-			if (cnt >= 322) {
-				break;
-			}
-		}
-	}
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_1,0); // Modify the comparison value for the duty cycle
-	__HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,0); // Modify the comparison value for the duty cycle
-
-	// Reset Timer Val
-	__HAL_TIM_CLEAR_IT(&htim2, TIM_IT_UPDATE);
-	TIM2->CNT = 0;
-	return 'R';
-}
-
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
-void Error_Handler(void) {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	__disable_irq();
 	while (1) {
 	}
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
@@ -1864,3 +829,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+

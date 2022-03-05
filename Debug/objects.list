@@ -1,5 +1,3 @@
-"./Core/Src/I2C.o"
-"./Core/Src/ICM20948.o"
 "./Core/Src/freertos.o"
 "./Core/Src/main.o"
 "./Core/Src/oled.o"
