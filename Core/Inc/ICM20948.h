@@ -121,6 +121,11 @@ void icm20948_accel_calibration();
 void icm20948_gyro_full_scale_select(gyro_full_scale full_scale);
 void icm20948_accel_full_scale_select(accel_full_scale full_scale);
 
+void select_user_bank(userbank ub);
+uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg);
+void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val);
+uint8_t* read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len);
+void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t* val, uint8_t len);
 
 /* ICM-20948 Registers */
 #define ICM20948_ADDRESS 0x68   // Device address when ADO = 0

@@ -62,28 +62,28 @@ UART_HandleTypeDef huart3;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for encoder */
 osThreadId_t encoderHandle;
 const osThreadAttr_t encoder_attributes = {
   .name = "encoder",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for display */
 osThreadId_t displayHandle;
 const osThreadAttr_t display_attributes = {
   .name = "display",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for gyroscope */
 osThreadId_t gyroscopeHandle;
 const osThreadAttr_t gyroscope_attributes = {
   .name = "gyroscope",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* USER CODE BEGIN PV */
@@ -116,7 +116,6 @@ void Gyroscope(void *argument);
 /* USER CODE BEGIN 0 */
 uint8_t aRxBuffer[20];
 axises my_gyro;
-axises my_accel;
 
 /* USER CODE END 0 */
 
@@ -157,7 +156,7 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   OLED_Init();
-//  ICM20948_Init();
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -736,11 +735,11 @@ void Encoder(void *argument)
 					diff = (65535 - cnt1) + cnt2;
 			}
 
-			sprintf(display_buf, "Speed:%5d", diff);
-			OLED_ShowString(10, 20, display_buf);
-			dir = __HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3);
-			sprintf(display_buf, "Dir:%5d", dir);
-			OLED_ShowString(10, 30, display_buf);
+//			sprintf(display_buf, "Speed:%5d", diff);
+//			OLED_ShowString(10, 20, display_buf);
+//			dir = __HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3);
+//			sprintf(display_buf, "Dir:%5d", dir);
+//			OLED_ShowString(10, 30, display_buf);
 			cnt1 = __HAL_TIM_GET_COUNTER(&htim3);
 			tick = HAL_GetTick();
 		}
@@ -780,21 +779,63 @@ void Display(void *argument)
 void Gyroscope(void *argument)
 {
   /* USER CODE BEGIN Gyroscope */
-	uint8_t reg_val, ub;
-	uint8_t ack[10];
-	ub = ub_0;
-	reg_val = 0x00;
-	HAL_I2C_Mem_Write(ICM20948_I2C, ICM20948_ADDRESS<<1, REG_BANK_SEL, 1, &ub, 1, 1000);
+	uint8_t buf[20];
+//	int16_t Gyro_X_RAW = 0;
+//	int16_t Gyro_Y_RAW = 0;
+//	int16_t Gyro_Z_RAW = 0;
+//
+//	float Gx, Gy, Gz;
+	ICM20948_Init();
+//	while(!icm20948_who_am_i());
+//
+//	icm20948_device_reset();
+//	icm20948_wakeup();
+//
+//	icm20948_clock_source(1);
+//	icm20948_odr_align_enable();
+//
+//	icm20948_spi_slave_enable();
+//
+//	icm20948_gyro_low_pass_filter(0);
+//	icm20948_accel_low_pass_filter(0);
+//
+//	icm20948_gyro_sample_rate_divider(0);
+//	icm20948_accel_sample_rate_divider(0);
+//
+//	icm20948_gyro_calibration();
+//	icm20948_accel_calibration();
+//
+//	icm20948_gyro_full_scale_select(_2000dps);
+//	icm20948_accel_full_scale_select(_16g);
+
 	for (;;) {
-		HAL_I2C_Mem_Read(ICM20948_I2C, ICM20948_ADDRESS<<1, B0_WHO_AM_I, 1, &reg_val, 1, 1000);
-		if(reg_val == ICM20948_ID)
-		{
-			sprintf(ack, "%x", reg_val);
-			HAL_UART_Transmit(&huart3, (uint8_t*)ack, strlen(ack), 0xFFFF);
-		}
-		osDelay(1000);
-//		ICM20948_Gyro_Read_dps(&my_gyro);
-//		ICM20948_Accel_Read_g(&my_accel);
+		ICM20948_Gyro_Read_dps(&my_gyro);
+//		userbank ub = ub_0;
+//		select_user_bank(ub);
+//
+//		uint8_t Rec_Data[6];
+//		// Read 6 BYTES of data starting from GYRO_XOUT_H register
+//		HAL_I2C_Mem_Read (&hi2c1, ICM20948_ADDRESS<<1, B0_GYRO_XOUT_H, 1, Rec_Data, 6, 1000);
+//		Gyro_X_RAW = (int16_t)(Rec_Data[0] << 8 | Rec_Data [1]);
+//		Gyro_Y_RAW = (int16_t)(Rec_Data[2] << 8 | Rec_Data [3]);
+//		Gyro_Z_RAW = (int16_t)(Rec_Data[4] << 8 | Rec_Data [5]);
+//
+//		/*** convert the RAW values into dps (�?/s)
+//			 we have to divide according to the Full scale value set in FS_SEL
+//			 I have configured FS_SEL = 0. So I am dividing by 131.0
+//			 for more details check GYRO_CONFIG Register              ****/
+//
+//		Gx = Gyro_X_RAW/16.4;
+//		Gy = Gyro_Y_RAW/16.4;
+//		Gz = Gyro_Z_RAW/16.4;
+
+		sprintf(buf, "Gx:%5.2f", my_gyro.x);
+		OLED_ShowString(10, 20, buf);
+		sprintf(buf, "Gy:%5.2f", my_gyro.y);
+		OLED_ShowString(10, 30, buf);
+		sprintf(buf, "Gz:%5.2f", my_gyro.z);
+		OLED_ShowString(10, 40, buf);
+		osDelay(100);
 	}
   /* USER CODE END Gyroscope */
 }

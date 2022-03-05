@@ -17,13 +17,6 @@ static float accel_scale_factor;
 //static void     cs_high();
 //static void     cs_low();
 
-static void     select_user_bank(userbank ub);
-
-static uint8_t  read_single_icm20948_reg(userbank ub, uint8_t reg);
-static void     write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val);
-static uint8_t* read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len);
-static void     write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t* val, uint8_t len);
-
 //static uint8_t  read_single_ak09916_reg(uint8_t reg);
 //static void     write_single_ak09916_reg(uint8_t reg, uint8_t val);
 //static uint8_t* read_multiple_ak09916_reg(uint8_t reg, uint8_t len);
@@ -427,7 +420,7 @@ void icm20948_accel_full_scale_select(accel_full_scale full_scale)
 //	HAL_GPIO_WritePin(ICM20948_SPI_CS_PIN_PORT, ICM20948_SPI_CS_PIN_NUMBER, RESET);
 //}
 
-static void select_user_bank(userbank ub)
+void select_user_bank(userbank ub)
 {
 //	uint8_t write_reg[2];
 //	write_reg[0] = WRITE | REG_BANK_SEL;
@@ -440,7 +433,7 @@ static void select_user_bank(userbank ub)
 	HAL_I2C_Mem_Write(ICM20948_I2C, ICM20948_ADDRESS<<1, REG_BANK_SEL, 1, &ub, 1, 1000);
 }
 
-static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg)
+uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg)
 {
 //	uint8_t read_reg = READ | reg;
 	uint8_t reg_val;
@@ -455,7 +448,7 @@ static uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg)
 	return reg_val;
 }
 
-static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
+void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
 {
 //	uint8_t write_reg[2];
 //	write_reg[0] = WRITE | reg;
@@ -470,7 +463,7 @@ static void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val)
 	HAL_I2C_Mem_Write(ICM20948_I2C, ICM20948_ADDRESS<<1, reg, 1, &val, 1, 1000);
 }
 
-static uint8_t* read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len)
+uint8_t* read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len)
 {
 //	uint8_t read_reg = READ | reg;
 	static uint8_t reg_val[6];
@@ -486,7 +479,7 @@ static uint8_t* read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len
 	return reg_val;
 }
 
-static void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t* val, uint8_t len)
+void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t* val, uint8_t len)
 {
 //	uint8_t write_reg = WRITE | reg;
 	select_user_bank(ub);
