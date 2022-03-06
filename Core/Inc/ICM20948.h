@@ -74,34 +74,34 @@ typedef enum
 // sensor init function.
 // if sensor id is wrong, it is stuck in while.
 void ICM20948_Init();
-//void ak09916_init();
+void AK09916_Init();
 
 // 16 bits ADC value. raw data.
 void ICM20948_Gyro_Read(axises* data);
 void ICM20948_Accel_Read(axises* data);
-//bool ak09916_mag_read(axises* data);
+bool AK09916_Mag_Read(axises* data);
 
 // Convert 16 bits ADC value to their unit.
 void ICM20948_Gyro_Read_dps(axises* data);
 void ICM20948_Accel_Read_g(axises* data);
-//bool ak09916_mag_read_uT(axises* data);
+bool AK09916_Mag_Read_uT(axises* data);
 
 
 /* Sub Functions */
 bool icm20948_who_am_i();
-//bool ak09916_who_am_i();
+bool ak09916_who_am_i();
 
 void icm20948_device_reset();
-//void ak09916_soft_reset();
+void ak09916_soft_reset();
 
 void icm20948_wakeup();
 void icm20948_sleep();
 
 //void icm20948_spi_slave_enable();
 
-//void icm20948_i2c_master_reset();
-//void icm20948_i2c_master_enable();
-//void icm20948_i2c_master_clk_frq(uint8_t config); // 0 - 15
+void icm20948_i2c_master_reset();
+void icm20948_i2c_master_enable();
+void icm20948_i2c_master_clk_frq(uint8_t config); // 0 - 15
 
 void icm20948_clock_source(uint8_t source);
 void icm20948_odr_align_enable();
@@ -112,7 +112,7 @@ void icm20948_accel_low_pass_filter(uint8_t config); // 0 - 7
 // Output Data Rate = 1.125kHz / (1 + divider)
 void icm20948_gyro_sample_rate_divider(uint8_t divider);
 void icm20948_accel_sample_rate_divider(uint16_t divider);
-//void ak09916_operation_mode_setting(operation_mode mode);
+void ak09916_operation_mode_setting(operation_mode mode);
 
 // Calibration before select full scale.
 void icm20948_gyro_calibration();
@@ -120,12 +120,6 @@ void icm20948_accel_calibration();
 
 void icm20948_gyro_full_scale_select(gyro_full_scale full_scale);
 void icm20948_accel_full_scale_select(accel_full_scale full_scale);
-
-void select_user_bank(userbank ub);
-uint8_t read_single_icm20948_reg(userbank ub, uint8_t reg);
-void write_single_icm20948_reg(userbank ub, uint8_t reg, uint8_t val);
-uint8_t* read_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t len);
-void write_multiple_icm20948_reg(userbank ub, uint8_t reg, uint8_t* val, uint8_t len);
 
 /* ICM-20948 Registers */
 #define ICM20948_ADDRESS 0x68   // Device address when ADO = 0

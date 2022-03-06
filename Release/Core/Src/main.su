@@ -1,8 +1,8 @@
-main.c:684:6:StartDefaultTask	8	static
-main.c:709:6:Encoder	16	static
-main.c:758:6:Display	32	static
-main.c:779:6:Gyroscope	32	static
-main.c:220:6:SystemClock_Config	88	static,ignoring_inline_asm
-main.c:126:5:main	112	static,ignoring_inline_asm
-main.c:670:6:HAL_UART_RxCpltCallback	0	static
-main.c:847:6:Error_Handler	0	static,ignoring_inline_asm
+main.c:686:6:StartDefaultTask	8	static
+main.c:710:6:Encoder	16	static
+main.c:759:6:Display	32	static
+main.c:780:6:Gyroscope	72	static
+main.c:222:6:SystemClock_Config	88	static,ignoring_inline_asm
+main.c:128:5:main	112	static,ignoring_inline_asm
+main.c:672:6:HAL_UART_RxCpltCallback	0	static
+main.c:813:6:Error_Handler	0	static,ignoring_inline_asm

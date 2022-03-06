@@ -116,6 +116,8 @@ void Gyroscope(void *argument);
 /* USER CODE BEGIN 0 */
 uint8_t aRxBuffer[20];
 axises my_gyro;
+axises my_accel;
+axises my_mag;
 
 /* USER CODE END 0 */
 
@@ -155,7 +157,7 @@ int main(void)
   MX_TIM3_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  OLED_Init();
+	OLED_Init();
 
   /* USER CODE END 2 */
 
@@ -685,17 +687,16 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
 //	uint8_t ch = 'A';
-  /* Infinite loop */
-  for(;;)
-  {
-	  HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
+	/* Infinite loop */
+	for (;;) {
+		HAL_UART_Receive_IT(&huart3, (uint8_t*) aRxBuffer, 1);
 //	  HAL_UART_Transmit(&huart3, (uint8_t *)&ch, sizeof(char), 0xFFFF);
 //	  if (ch < 'Z')
 //		  ch++;
 //	  else
 //		  ch = 'A';
-	  osDelay(1);
-  }
+		osDelay(1);
+	}
   /* USER CODE END 5 */
 }
 
@@ -780,60 +781,25 @@ void Gyroscope(void *argument)
 {
   /* USER CODE BEGIN Gyroscope */
 	uint8_t buf[20];
-//	int16_t Gyro_X_RAW = 0;
-//	int16_t Gyro_Y_RAW = 0;
-//	int16_t Gyro_Z_RAW = 0;
-//
-//	float Gx, Gy, Gz;
+	float pitch, roll, yaw;
+	float Xh, Yh;
 	ICM20948_Init();
-//	while(!icm20948_who_am_i());
-//
-//	icm20948_device_reset();
-//	icm20948_wakeup();
-//
-//	icm20948_clock_source(1);
-//	icm20948_odr_align_enable();
-//
-//	icm20948_spi_slave_enable();
-//
-//	icm20948_gyro_low_pass_filter(0);
-//	icm20948_accel_low_pass_filter(0);
-//
-//	icm20948_gyro_sample_rate_divider(0);
-//	icm20948_accel_sample_rate_divider(0);
-//
-//	icm20948_gyro_calibration();
-//	icm20948_accel_calibration();
-//
-//	icm20948_gyro_full_scale_select(_2000dps);
-//	icm20948_accel_full_scale_select(_16g);
+	AK09916_Init();
 
 	for (;;) {
 		ICM20948_Gyro_Read_dps(&my_gyro);
-//		userbank ub = ub_0;
-//		select_user_bank(ub);
-//
-//		uint8_t Rec_Data[6];
-//		// Read 6 BYTES of data starting from GYRO_XOUT_H register
-//		HAL_I2C_Mem_Read (&hi2c1, ICM20948_ADDRESS<<1, B0_GYRO_XOUT_H, 1, Rec_Data, 6, 1000);
-//		Gyro_X_RAW = (int16_t)(Rec_Data[0] << 8 | Rec_Data [1]);
-//		Gyro_Y_RAW = (int16_t)(Rec_Data[2] << 8 | Rec_Data [3]);
-//		Gyro_Z_RAW = (int16_t)(Rec_Data[4] << 8 | Rec_Data [5]);
-//
-//		/*** convert the RAW values into dps (�?/s)
-//			 we have to divide according to the Full scale value set in FS_SEL
-//			 I have configured FS_SEL = 0. So I am dividing by 131.0
-//			 for more details check GYRO_CONFIG Register              ****/
-//
-//		Gx = Gyro_X_RAW/16.4;
-//		Gy = Gyro_Y_RAW/16.4;
-//		Gz = Gyro_Z_RAW/16.4;
-
-		sprintf(buf, "Gx:%5.2f", my_gyro.x);
+		ICM20948_Accel_Read_g(&my_accel);
+		AK09916_Mag_Read_uT(&my_mag);
+		pitch = atan2f(my_accel.y, (sqrtf((my_accel.x * my_accel.x) + (my_accel.z * my_accel.z))));
+		roll = atan2f(-my_accel.x, (sqrtf((my_accel.y * my_accel.y) + (my_accel.z * my_accel.z))));
+		Yh = (my_mag.y * cosf(roll)) - (my_mag.z * sinf(roll));
+		Xh = (my_mag.x * cosf(pitch)) + (my_mag.y * sinf(roll) * sinf(pitch)) + (my_mag.z * cosf(roll) * sinf(pitch));
+		yaw = atan2f(Yh, Xh);
+		sprintf(buf, "Pitch:%5.2f", pitch);
 		OLED_ShowString(10, 20, buf);
-		sprintf(buf, "Gy:%5.2f", my_gyro.y);
+		sprintf(buf, "Roll: %5.2f", roll);
 		OLED_ShowString(10, 30, buf);
-		sprintf(buf, "Gz:%5.2f", my_gyro.z);
+		sprintf(buf, "Yaw:  %5.2f", yaw);
 		OLED_ShowString(10, 40, buf);
 		osDelay(100);
 	}
