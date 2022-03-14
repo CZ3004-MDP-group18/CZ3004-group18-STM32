@@ -276,7 +276,7 @@ void icm20948_gyro_calibration()
 	int32_t gyro_bias[3] = {0};
 	uint8_t gyro_offset[6] = {0};
 
-	for(int i = 0; i < 100; i++)
+	for(int i = 0; i < 1000; i++)
 	{
 		ICM20948_Gyro_Read(&temp);
 		gyro_bias[0] += temp.x;
@@ -284,16 +284,16 @@ void icm20948_gyro_calibration()
 		gyro_bias[2] += temp.z;
 	}
 
-	gyro_bias[0] /= 100;
-	gyro_bias[1] /= 100;
-	gyro_bias[2] /= 100;
+	gyro_bias[0] /= 1000;
+	gyro_bias[1] /= 1000;
+	gyro_bias[2] /= 1000;
 
 	// Construct the gyro biases for push to the hardware gyro bias registers,
 	// which are reset to zero upon device startup.
 	// Divide by 4 to get 32.9 LSB per deg/s to conform to expected bias input format.
 	// Biases are additive, so change sign on calculated average gyro biases
-	gyro_offset[0] = (-gyro_bias[0] / 4  >> 8) & 0xFF; 
-	gyro_offset[1] = (-gyro_bias[0] / 4)       & 0xFF; 
+	gyro_offset[0] = (-gyro_bias[0] / 4  >> 8) & 0xFF;
+	gyro_offset[1] = (-gyro_bias[0] / 4)       & 0xFF;
 	gyro_offset[2] = (-gyro_bias[1] / 4  >> 8) & 0xFF;
 	gyro_offset[3] = (-gyro_bias[1] / 4)       & 0xFF;
 	gyro_offset[4] = (-gyro_bias[2] / 4  >> 8) & 0xFF;
